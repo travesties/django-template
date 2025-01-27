@@ -1,0 +1,58 @@
+services:
+  web:
+    extends:
+      file: docker-compose.yml
+      service: web
+    build:
+      target: debug
+    command: python -m debugpy --wait-for-client --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000
+    ports:
+      - 5678:5678
+    env_file: 
+      - ./django/.env
+      - ./django/.env.prod
+
+  db-primary:
+    extends:
+      file: docker-compose.yml
+      service: db-primary
+
+  db-celerybeat:
+    extends:
+      file: docker-compose.yml
+      service: db-celerybeat
+
+  redis:
+    extends:
+      file: docker-compose.yml
+      service: redis
+
+  rabbitmq:
+    extends:
+      file: docker-compose.yml
+      service: rabbitmq
+
+  celery:
+    extends:
+      file: docker-compose.yml
+      service: celery
+    env_file: 
+      - ./django/.env
+      - ./django/.env.prod
+
+  celerybeat:
+    extends:
+      file: docker-compose.yml
+      service: celerybeat
+    env_file: 
+      - ./django/.env
+      - ./django/.env.prod
+
+  app:
+    extends:
+      file: docker-compose.yml
+      service: app
+
+volumes:
+    db_primary_data:
+    db_celerybeat_data:

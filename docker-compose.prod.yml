@@ -1,0 +1,135 @@
+x-postgres-common:
+  &postgres-common
+  image: postgres:15-alpine3.18
+  user: postgres
+  restart: always
+  healthcheck:
+    test: 'pg_isready -U postgres --dbname=postgres'
+    interval: 10s
+    timeout: 5s
+    retries: 5
+
+services:
+  web:
+    extends:
+      file: docker-compose.yml
+      service: web
+    build:
+      target: production
+    volumes:
+      - ./django:/home/app/web
+      - django_static_volume:/home/app/web/static
+    command: gunicorn app.wsgi:application --bind 0.0.0.0:8000
+    depends_on:
+      - db-primary
+      - db-replica
+      - db-celerybeat
+      - redis
+      - celery
+      - celerybeat
+    env_file: 
+      - ./django/.env
+      - ./django/.env.prod
+
+  nginx:
+    build: ./nginx
+    volumes:
+      - django_static_volume:/home/app/web/static
+    ports:
+      - 1337:80
+    depends_on:
+      - web
+
+  db-celerybeat:
+    extends:
+      file: docker-compose.yml
+      service: db-celerybeat
+    volumes:
+      - db_celerybeat_prod_data:/var/lib/postgresql/data
+
+  db-primary:
+    extends:
+      file: docker-compose.yml
+      service: db-primary
+    volumes:
+      - db_primary_prod_data:/var/lib/postgresql/data
+      - ./00_init.sql:/docker-entrypoint-initdb.d/00_init.sql
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_HOST_AUTH_METHOD: "scram-sha-256\nhost replication all 0.0.0.0/0 md5"
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    command: |
+      postgres 
+      -c wal_level=replica 
+      -c hot_standby=on 
+      -c max_wal_senders=10 
+      -c max_replication_slots=10 
+      -c hot_standby_feedback=on
+
+  db-replica:
+    <<: *postgres-common
+    volumes:
+      - db_replica_prod_data:/var/lib/postgresql/data
+    environment:
+      PGUSER: replicator
+      PGPASSWORD: replicator_password
+    command: |
+      bash -c "
+      until pg_basebackup --pgdata=/var/lib/postgresql/data -R --slot=replication_slot --host=db-primary --port=5432
+      do
+      echo 'Waiting for primary to connect...'
+      sleep 1s
+      done
+      echo 'Backup done, starting replica...'
+      chmod 0700 /var/lib/postgresql/data
+      postgres
+      "
+    depends_on:
+      - db-primary
+
+  redis:
+    extends:
+      file: docker-compose.yml
+      service: redis
+
+  rabbitmq:
+    extends:
+      file: docker-compose.yml
+      service: rabbitmq
+
+  celery:
+    extends:
+      file: docker-compose.yml
+      service: celery
+    depends_on:
+      - db-primary
+      - db-replica
+      - db-celerybeat
+      - rabbitmq
+      - redis
+    env_file: 
+      - ./django/.env
+      - ./django/.env.prod
+
+  celerybeat:
+    extends:
+      file: docker-compose.yml
+      service: celerybeat
+    env_file: 
+      - ./django/.env
+      - ./django/.env.prod
+
+  app:
+    extends:
+      file: docker-compose.yml
+      service: app
+    build:
+      target: production
+
+volumes:
+  db_primary_prod_data:
+  db_replica_prod_data:
+  db_celerybeat_prod_data:
+  django_static_volume:

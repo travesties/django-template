@@ -1,0 +1,116 @@
+x-postgres-common:
+  &postgres-common
+  image: postgres:15-alpine3.18
+  user: postgres
+  restart: always
+  healthcheck:
+    test: 'pg_isready -U postgres --dbname=postgres'
+    interval: 10s
+    timeout: 5s
+    retries: 5
+
+services:
+  # Django web server. Service profiles are used to ensure that this service and the debug
+  # service below are not started at the same time, due to port conflicts.
+  # Example usage: docker compose --profile development up
+  web:
+    image: web:local
+    build:
+      context: ./django
+      dockerfile: Dockerfile
+      target: dev
+    hostname: web
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./django:/app
+    ports:
+      - 8000:8000
+    depends_on:
+      - db-primary
+      - db-celerybeat
+      - redis
+      - celery
+      - celerybeat
+    env_file: 
+      - ./django/.env
+
+  # Postgres
+  db-celerybeat:
+    <<: *postgres-common
+    volumes:
+      - db_celerybeat_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 5432:5432
+
+  db-primary:
+    <<: *postgres-common
+    volumes:
+      - db_primary_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - 5433:5432
+
+  # Redis
+  redis:
+      image: redis:7-alpine3.18
+      hostname: redis
+
+  # RabbitMQ message broker
+  rabbitmq:
+    image: rabbitmq:3
+    ports:
+      - 5672:5672
+
+  # React app
+  app:
+    image: app:local
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: dev
+    volumes:
+      - ./client:/app/
+      - /app/node_modules
+    ports:
+      - 3000:3000
+
+  celery:
+    build:
+      context: ./django
+      dockerfile: Dockerfile
+      target: dev
+    command: celery -A app worker --loglevel=info
+    volumes:
+      - ./django:/app
+    depends_on:
+      - db-primary
+      - db-celerybeat
+      - rabbitmq
+      - redis
+    env_file:
+      - ./django/.env
+
+  celerybeat:
+    build:
+      context: ./django
+      dockerfile: Dockerfile
+      target: dev
+    command: celery -A app beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    volumes:
+      - ./django:/app
+    depends_on:
+      - redis
+      - rabbitmq
+    env_file:
+      - ./django/.env
+
+volumes:
+    db_primary_data:
+    db_celerybeat_data:
