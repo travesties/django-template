@@ -1,22 +1,22 @@
-import './App.css';
-import { LoginForm } from './LoginForm';
-import { UserContext } from './UserContext';
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import "./App.css";
+import { LoginForm } from "./LoginForm";
+import { UserContext } from "./UserContext";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { User } from "./User.jsx";
 import { useVisibilityChange, useApiPolling } from "./hooks.js";
-import { userLogout } from './api.js';
-import environment from './environment.js';
+import { userLogout } from "./api.js";
+import environment from "./environment.js";
 
-function storeUserData({user, token, expiry}) {
-  localStorage.setItem('user', JSON.stringify(user));
-  localStorage.setItem('token', token);
-  localStorage.setItem('expiry', expiry);
+function storeUserData({ user, token, expiry }) {
+  localStorage.setItem("user", JSON.stringify(user));
+  localStorage.setItem("token", token);
+  localStorage.setItem("expiry", expiry);
 }
 
 function clearUserData() {
-  localStorage.removeItem('user');
-  localStorage.removeItem('token');
-  localStorage.removeItem('expiry');
+  localStorage.removeItem("user");
+  localStorage.removeItem("token");
+  localStorage.removeItem("expiry");
 }
 
 /*
@@ -26,8 +26,8 @@ function clearUserData() {
  * @param {string} token - User authentication token
  * @param {string} expiry - Auth token expiration timestamp
  */
-function loginUser({user, token, expiry}, setUser) {
-  storeUserData({user, token, expiry});
+function loginUser({ user, token, expiry }, setUser) {
+  storeUserData({ user, token, expiry });
   setUser(user);
 }
 
@@ -39,13 +39,13 @@ function loginUser({user, token, expiry}, setUser) {
  */
 function logoutUser(setUser, token) {
   userLogout(token)
-  .then(() => {
-    clearUserData();
-    setUser(null);
-  })
-  .catch((error) => {
-    console.log('Failed to logout', error);
-  });
+    .then(() => {
+      clearUserData();
+      setUser(null);
+    })
+    .catch((error) => {
+      console.log("Failed to logout", error);
+    });
 }
 
 /*
@@ -53,18 +53,18 @@ function logoutUser(setUser, token) {
  * @returns {object} User data
  */
 function getUser() {
-  return JSON.parse(localStorage.getItem('user'));
+  return JSON.parse(localStorage.getItem("user"));
 }
 
 /**
-  * Retrieve's the user's auth token from localStorage. If the
-  * token is expired, the user and token data entries in
-  * localStorage are deleted so that the login page is rendered.
-  * @returns {string} User authentication token
-  */
+ * Retrieve's the user's auth token from localStorage. If the
+ * token is expired, the user and token data entries in
+ * localStorage are deleted so that the login page is rendered.
+ * @returns {string} User authentication token
+ */
 function getAuthToken() {
-  const token = localStorage.getItem('token');
-  const expiry = Date.parse(localStorage.getItem('expiry'));
+  const token = localStorage.getItem("token");
+  const expiry = Date.parse(localStorage.getItem("expiry"));
 
   if (!token || !expiry || expiry < Date.now()) {
     clearUserData();
@@ -88,7 +88,7 @@ function App() {
       setUser(null);
       setInitialLoadInProgress(false);
       setInitialLoadComplete(false);
-      throw new Error('Unauthorized. Reset client credentials.');
+      throw new Error("Unauthorized. Reset client credentials.");
     }
     return response;
   }
@@ -137,7 +137,10 @@ function App() {
   });
 
   const logout = useCallback(() => logoutUser(setUser, token), [token]);
-  const value = useMemo(() => ({ user, token, login, logout }), [user, token, login, logout]);
+  const value = useMemo(
+    () => ({ user, token, login, logout }),
+    [user, token, login, logout],
+  );
 
   return (
     <UserContext.Provider value={value}>

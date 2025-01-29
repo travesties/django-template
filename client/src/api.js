@@ -9,7 +9,7 @@ function httpGet({ path, params = {}, headers = {} }) {
   let url = environment.API_BASE_URL + path;
 
   if (params) {
-    url += "?" + new URLSearchParams(params);
+    url += `?${new URLSearchParams(params)}`;
   }
 
   headers = { ...commonHeaders, ...headers };
@@ -67,4 +67,3 @@ export function userLogout(token) {
     headers: { Authorization: `Token ${token}` },
   });
 }
-
