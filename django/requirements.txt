@@ -10,3 +10,4 @@ django-celery-beat>=2.7
 pytest-django>=4.9
 pytest-celery>=1.0.0
 vcrpy>=7.0
+ruff==0.9.3
