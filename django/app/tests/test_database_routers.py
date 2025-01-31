@@ -1,7 +1,6 @@
 import random
 
 from app.db.routers import CeleryBeatRouter, ReplicationRouter
-from app.tests.fixtures import *
 from django_celery_beat.models import PeriodicTask
 
 from django.contrib.auth.models import User

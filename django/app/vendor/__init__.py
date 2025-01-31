@@ -1,5 +1,6 @@
 import requests
 
+from .vendor_api import VendorAPI
 from django.conf import settings
 
 VENDOR_API_KEY = getattr(settings, "VENDOR_API_KEY")
@@ -18,4 +19,5 @@ if VENDOR_API_KEY is None:
 session = requests.Session()
 session.headers.update({"Vendor-API-Key": VENDOR_API_KEY})
 
-from .vendor_api import VendorAPI
+
+__all__ = ["session", "VendorAPI"]

@@ -10,12 +10,10 @@ logger = get_task_logger(__name__)
 def on_beat_init(sender=None, **kwargs):
     """
     Perform any work that should be done when celery beat is fully initialized.
+    https://docs.celeryq.dev/en/stable/userguide/periodic-tasks.html#entries
     """
-    scheduler = sender.get_scheduler() if sender else None
-    beat_logger = scheduler.logger if scheduler else logger
-
     try:
-        periodic_task = PeriodicTask.objects.get(name="task-name")
+        PeriodicTask.objects.get(name="task-name")
     except PeriodicTask.DoesNotExist:
         pass
 
