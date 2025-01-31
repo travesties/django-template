@@ -6,4 +6,3 @@ Models registered with the Django admin will be accessible at http://localhost:8
 
 https://docs.djangoproject.com/en/5.1/ref/contrib/admin/
 """
-
