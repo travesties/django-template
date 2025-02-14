@@ -11,8 +11,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         [
             User.objects.create_superuser(
-                username=f"user{n+1}",
-                email=f"user{n+1}@example.com",
+                username=f"user{n + 1}",
+                email=f"user{n + 1}@example.com",
                 password="password",
             )
             for n in range(INITIAL_USER_COUNT)
