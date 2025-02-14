@@ -1,8 +1,24 @@
 .DEFAULT_GOAL := help
 .PHONY: help dev
 
+## Build docker images
+build:
+	docker compose build
 
-up: ## Run all the services, web (Django), Celery, RabbitMQ, Postgres, Redis
+build-no-cache:
+	docker compose build --no-cache
+
+build-debug:
+	docker compose -f docker-compose.debug.yml \
+		build
+
+build-prod:
+	docker compose -f docker-compose.prod.yml \
+		build
+
+
+## Run all services
+up:
 	docker compose up
 
 up-debug:
@@ -15,8 +31,14 @@ up-prod:
 	docker compose -f docker-compose.prod.yml \
 		up
 
+
+## Bring down all services
 down:
 	docker compose down
+
+down-debug:
+	docker compose -f docker-compose.debug.yml \
+		down
 
 down-prod:
 	docker compose -f docker-compose.prod.yml \
@@ -24,12 +46,23 @@ down-prod:
 	# Delete replica volumes matching regex pattern
 	#docker volume ls | egrep -wo 'db_replica.[a-z_]*' | xargs -r docker volume rm
 
+
+## Clean containers
 clean:
 	docker container prune -f
-	
+
+nuke:
+	make down
+	make clean
+	#docker volume prune -af
+
+
+## Run tests
 test-backend: ## Run all Django tests
 	docker compose run web pytest
 
+
+## Access running containers
 sh: ## Open a shell with all dependencies
 	docker compose run web sh
 
@@ -42,20 +75,8 @@ django-sh:
 psql: ## Open a Postgres shell
 	docker compose run web python manage.py dbshell
 
-build: ## Build the docker image used by the 'web' and 'celery' services in the docker-compose.yml
-	docker compose build
 
-build-debug:
-	docker compose -f docker-compose.debug.yml \
-		build
-
-build-prod:
-	docker compose -f docker-compose.prod.yml \
-		build
-
-build-no-cache: ## Build the docker image, without the the docker build cache, used by the 'web' and 'celery' services in the docker-compose.yml
-	docker compose build web --no-cache
-
+## Initialize data stores with starting data
 createsuperuser: ## Create the root Django superuser with username=root password=root
 	docker compose \
 	    run \
@@ -71,6 +92,25 @@ createusers: ## Create 2 standard users username=user1 and username=user2
 		web \
 		python manage.py shell --command "from django.contrib.auth.models import User; User.objects.create_superuser(username='user1', email='user1@example.com', password='password')"
 	docker compose \
+		run \
+		web \
+		python manage.py shell --command "from django.contrib.auth.models import User; User.objects.create_superuser(username='user2', email='user2@example.com', password='password')"
+
+createsuperuser-prod: ## Create the root Django superuser with username=root password=root
+	docker compose -f docker-compose.prod.yml \
+	    run \
+	    -e DJANGO_SUPERUSER_PASSWORD=root \
+	    -e DJANGO_SUPERUSER_USERNAME=root \
+	    -e DJANGO_SUPERUSER_EMAIL=root@example.com \
+	    web \
+	    python manage.py createsuperuser --noinput
+
+createusers-prod: ## Create 2 standard users username=user1 and username=user2
+	docker compose -f docker-compose.prod.yml \
+		run \
+		web \
+		python manage.py shell --command "from django.contrib.auth.models import User; User.objects.create_superuser(username='user1', email='user1@example.com', password='password')"
+	docker compose -f docker-compose.prod.yml \
 		run \
 		web \
 		python manage.py shell --command "from django.contrib.auth.models import User; User.objects.create_superuser(username='user2', email='user2@example.com', password='password')"
@@ -93,24 +133,6 @@ migrate-prod:
 	docker compose -f docker-compose.prod.yml \
 		run web python manage.py migrate --database=celerybeat
 
-createsuperuser-prod: ## Create the root Django superuser with username=root password=root
-	docker compose -f docker-compose.prod.yml \
-	    run \
-	    -e DJANGO_SUPERUSER_PASSWORD=root \
-	    -e DJANGO_SUPERUSER_USERNAME=root \
-	    -e DJANGO_SUPERUSER_EMAIL=root@example.com \
-	    web \
-	    python manage.py createsuperuser --noinput
-
-createusers-prod: ## Create 2 standard users username=user1 and username=user2
-	docker compose -f docker-compose.prod.yml \
-		run \
-		web \
-		python manage.py shell --command "from django.contrib.auth.models import User; User.objects.create_superuser(username='user1', email='user1@example.com', password='password')"
-	docker compose -f docker-compose.prod.yml \
-		run \
-		web \
-		python manage.py shell --command "from django.contrib.auth.models import User; User.objects.create_superuser(username='user2', email='user2@example.com', password='password')"
 
 init:
 	make build
@@ -128,19 +150,12 @@ init-prod:
 	#make hydrate-prod
 	docker compose stop
 
-nuke:
-	make down
-	make clean
-	docker volume prune -af
 
 open-admin: ## Open the Django admin page
 	open http://localhost:8000/admin
 
 open-app: ## Open the React app
 	open http://localhost:3000
-
-submit: ## Dump the Postgres database and package your project into a solution.zip file you can submit
-	zip -r solution.zip .
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
