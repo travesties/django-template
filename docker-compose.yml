@@ -1,3 +1,5 @@
+name: django-app
+
 x-postgres-common:
   &postgres-common
   image: postgres:15-alpine3.18
@@ -31,7 +33,7 @@ services:
       - redis
       - celery
       - celerybeat
-    env_file: 
+    env_file:
       - ./django/.env
 
   # Postgres

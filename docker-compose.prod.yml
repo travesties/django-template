@@ -1,3 +1,5 @@
+name: django-app-prod
+
 x-postgres-common:
   &postgres-common
   image: postgres:15-alpine3.18
@@ -27,7 +29,7 @@ services:
       - redis
       - celery
       - celerybeat
-    env_file: 
+    env_file:
       - ./django/.env
       - ./django/.env.prod
 
@@ -61,11 +63,11 @@ services:
       POSTGRES_HOST_AUTH_METHOD: "scram-sha-256\nhost replication all 0.0.0.0/0 md5"
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
     command: |
-      postgres 
-      -c wal_level=replica 
-      -c hot_standby=on 
-      -c max_wal_senders=10 
-      -c max_replication_slots=10 
+      postgres
+      -c wal_level=replica
+      -c hot_standby=on
+      -c max_wal_senders=10
+      -c max_replication_slots=10
       -c hot_standby_feedback=on
 
   db-replica:
@@ -109,7 +111,7 @@ services:
       - db-celerybeat
       - rabbitmq
       - redis
-    env_file: 
+    env_file:
       - ./django/.env
       - ./django/.env.prod
 
@@ -117,7 +119,7 @@ services:
     extends:
       file: docker-compose.yml
       service: celerybeat
-    env_file: 
+    env_file:
       - ./django/.env
       - ./django/.env.prod
 

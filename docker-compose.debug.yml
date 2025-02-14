@@ -1,3 +1,5 @@
+name: django-app-debug
+
 services:
   web:
     extends:
@@ -8,7 +10,7 @@ services:
     command: python -m debugpy --wait-for-client --listen 0.0.0.0:5678 manage.py runserver 0.0.0.0:8000
     ports:
       - 5678:5678
-    env_file: 
+    env_file:
       - ./django/.env
       - ./django/.env.prod
 
@@ -36,7 +38,7 @@ services:
     extends:
       file: docker-compose.yml
       service: celery
-    env_file: 
+    env_file:
       - ./django/.env
       - ./django/.env.prod
 
@@ -44,7 +46,7 @@ services:
     extends:
       file: docker-compose.yml
       service: celerybeat
-    env_file: 
+    env_file:
       - ./django/.env
       - ./django/.env.prod
 

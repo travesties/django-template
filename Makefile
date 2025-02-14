@@ -19,11 +19,11 @@ build-prod:
 
 ## Run all services
 up:
-	docker compose up
+	docker compose up --remove-orphans
 
 up-debug:
 	docker compose -f docker-compose.debug.yml \
-		up
+		up --remove-orphans
 
 up-prod:
 	docker compose -f docker-compose.prod.yml \
@@ -59,21 +59,39 @@ nuke:
 
 ## Run tests
 test-backend: ## Run all Django tests
-	docker compose run web pytest
+	docker compose run --rm web pytest
+
+
+## Run linters and formatters
+lint-check:
+	docker compose run --rm web ruff check
+	docker compose run --rm app yarn biome lint
+
+lint-fix:
+	docker compose run --rm web ruff --fix
+	docker compose run --rm app yarn biome lint --write
+
+format-check:
+	docker compose run --rm web ruff format --check
+	docker compose run --rm app yarn biome format
+
+format-fix:
+	docker compose run --rm web ruff format
+	docker compose run --rm app yarn biome format --write
 
 
 ## Access running containers
 sh: ## Open a shell with all dependencies
-	docker compose run web sh
+	docker compose run --rm web sh
 
 sh-app: ## Open a shell with all dependencies
-	docker compose run app sh
+	docker compose run --rm app sh
 
 django-sh:
-	docker compose run web python manage.py shell
+	docker compose run --rm web python manage.py shell
 
 psql: ## Open a Postgres shell
-	docker compose run web python manage.py dbshell
+	docker compose run --rm web python manage.py dbshell
 
 
 ## Initialize data stores with starting data
@@ -123,15 +141,15 @@ hydrate-prod:
 		run web python manage.py hydrate
 
 migrate: ## Create and apply database migrations
-	docker compose run web python manage.py makemigrations
-	docker compose run web python manage.py migrate
-	docker compose run web python manage.py migrate --database=celerybeat
+	docker compose run --rm web python manage.py makemigrations
+	docker compose run --rm web python manage.py migrate
+	docker compose run --rm web python manage.py migrate --database=celerybeat
 
 migrate-prod:
 	docker compose -f docker-compose.prod.yml \
-		run web python manage.py migrate
+		run --rm web python manage.py migrate
 	docker compose -f docker-compose.prod.yml \
-		run web python manage.py migrate --database=celerybeat
+		run --rm web python manage.py migrate --database=celerybeat
 
 
 init:
@@ -140,7 +158,7 @@ init:
 	make createsuperuser
 	make createusers
 	#make hydrate
-	docker compose stop
+	docker compose stop --remove-orphans
 
 init-prod:
 	make build-prod
@@ -148,7 +166,7 @@ init-prod:
 	make createsuperuser-prod
 	make createusers-prod
 	#make hydrate-prod
-	docker compose stop
+	docker compose stop --remove-orphans
 
 
 open-admin: ## Open the Django admin page
